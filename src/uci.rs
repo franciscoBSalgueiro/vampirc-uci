@@ -823,10 +823,10 @@ impl Display for UciOptionConfig {
 #[derive(Clone, Eq, PartialEq, Debug, Hash)]
 pub enum UciInfoAttribute {
     /// The `info depth` message.
-    Depth(usize),
+    Depth(u32),
 
     /// The `info seldepth` message.
-    SelDepth(usize),
+    SelDepth(u32),
 
     /// The `info time` message.
     Time(Duration),
