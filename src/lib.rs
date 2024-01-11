@@ -7,7 +7,6 @@
 //!
 //! See the [README.md](https://github.com/vampirc/vampirc-uci/blob/master/README.md) file for usage instructions.
 
-
 #[cfg(feature = "chess")]
 extern crate chess;
 extern crate chrono;
@@ -47,8 +46,8 @@ pub use self::uci::UciSearchControl;
 pub use self::uci::UciSquare;
 pub use self::uci::UciTimeControl;
 
-pub mod uci;
 pub mod parser;
+pub mod uci;
 
 #[cfg(test)]
 mod tests {

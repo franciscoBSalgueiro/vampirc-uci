@@ -84,11 +84,11 @@ wtime = ${ ^"wtime" ~ WHITESPACE+ ~ milliseconds}
 btime = ${ ^"btime" ~ WHITESPACE+ ~ milliseconds}
 winc = ${ ^"winc" ~ WHITESPACE+ ~ milliseconds}
 binc = ${ ^"binc" ~ WHITESPACE+ ~ milliseconds}
-movestogo = ${ ^"movestogo" ~ WHITESPACE+ ~ digits3}
+movestogo = ${ ^"movestogo" ~ WHITESPACE+ ~ number}
 go_search = { depth | nodes | mate | searchmoves }
-depth = ${ ^"depth" ~WHITESPACE+ ~ digits3 }
-nodes = ${ ^"nodes" ~WHITESPACE+ ~ digits12 }
-mate = ${ ^"mate" ~WHITESPACE+ ~ digits3 }
+depth = ${ ^"depth" ~WHITESPACE+ ~ number }
+nodes = ${ ^"nodes" ~WHITESPACE+ ~ number }
+mate = ${ ^"mate" ~WHITESPACE+ ~ number }
 searchmoves = ${ ^"searchmoves" ~ (WHITESPACE+ ~ a_move)+ }
 
 // GUI-bound stuff
@@ -124,8 +124,8 @@ option_combo = { ^"combo" }
 option_string = { ^"string" }
 option_button = { ^"button" }
 option_default = {!(^"min" | ^"max" | ^"var") ~ token ~ (WHITESPACE+ ~ !(^"min" | ^"max" | ^"var") ~ token+)*}
-option_min = { i64 }
-option_max = { i64 }
+option_min = { number }
+option_max = { number }
 option_var = { !^"var" ~ token ~ (WHITESPACE+ ~ !^"var" ~ token+)* }
 
 // info
@@ -139,28 +139,28 @@ info = ${^"info" ~ (WHITESPACE+ ~ info_attribute)+ }
 info_attribute = { info_depth | info_seldepth | info_time | info_nodes | info_currmovenum | info_currmove | info_hashfull | info_nps |
  info_tbhits | info_sbhits | info_cpuload | info_string | info_pv | info_multipv | info_refutation | info_currline |
  info_score | info_any }
-info_depth = ${ ^"depth" ~ WHITESPACE+ ~ digits3 }
-info_seldepth = ${ ^"seldepth" ~ WHITESPACE+ ~ digits3 }
-info_time = ${ ^"time" ~ WHITESPACE+ ~ digits12 }
-info_nodes = ${ ^"nodes" ~ WHITESPACE+ ~ digits12 }
+info_depth = ${ ^"depth" ~ WHITESPACE+ ~ number }
+info_seldepth = ${ ^"seldepth" ~ WHITESPACE+ ~ number }
+info_time = ${ ^"time" ~ WHITESPACE+ ~ number }
+info_nodes = ${ ^"nodes" ~ WHITESPACE+ ~ number }
 info_currmove = ${ ^"currmove" ~ WHITESPACE+ ~ a_move }
-info_currmovenum = ${ ^"currmovenum" ~ WHITESPACE+ ~ digits12 }
-info_hashfull = ${ ^"hashfull" ~ WHITESPACE+ ~ digits12 }
-info_nps = ${ ^"nps" ~ WHITESPACE+ ~ digits12 }
-info_tbhits = ${ ^"tbhits" ~ WHITESPACE+ ~ digits12 }
-info_sbhits = ${ ^"sbhits" ~ WHITESPACE+ ~ digits12 }
-info_cpuload = ${ ^"cpuload" ~ WHITESPACE+ ~ digits12 }
+info_currmovenum = ${ ^"currmovenum" ~ WHITESPACE+ ~ number }
+info_hashfull = ${ ^"hashfull" ~ WHITESPACE+ ~ number }
+info_nps = ${ ^"nps" ~ WHITESPACE+ ~ number }
+info_tbhits = ${ ^"tbhits" ~ WHITESPACE+ ~ number }
+info_sbhits = ${ ^"sbhits" ~ WHITESPACE+ ~ number }
+info_cpuload = ${ ^"cpuload" ~ WHITESPACE+ ~ number }
 info_string = ${ ^"string" ~ WHITESPACE+ ~ info_string_string }
 info_any = ${ token ~ WHITESPACE+ ~ info_string_string }
 info_string_string = { any+ }
 info_pv = ${ ^"pv" ~ (WHITESPACE+ ~ a_move)+ }
-info_multipv = ${ ^"multipv" ~ WHITESPACE+ ~ digits12 }
+info_multipv = ${ ^"multipv" ~ WHITESPACE+ ~ number }
 info_refutation = ${ ^"refutation" ~ (WHITESPACE+ ~ a_move)+ }
 info_currline = ${ ^"currline" ~ (WHITESPACE+ ~ info_cpunr)* ~ (WHITESPACE+ ~ a_move)+ }
-info_cpunr = { digits3 }
+info_cpunr = { number }
 info_score = ${ ^"score" ~ WHITESPACE+ ~ (info_cp | info_mate) ~ (WHITESPACE+ ~ (info_lowerbound | info_upperbound))* }
-info_cp = ${ ^"cp" ~ WHITESPACE+ ~ i64 }
-info_mate = ${ ^"mate" ~ WHITESPACE+ ~ i64 }
+info_cp = ${ ^"cp" ~ WHITESPACE+ ~ number }
+info_mate = ${ ^"mate" ~ WHITESPACE+ ~ number }
 info_lowerbound = { ^"lowerbound" }
 info_upperbound = { ^"upperbound" }
 
@@ -168,10 +168,7 @@ info_upperbound = { ^"upperbound" }
 
 sign = _{PLUS | MINUS}
 milliseconds = {sign? ~ digit{1,12} }
-digits3 = { digit{1,3} }
-digits12 = { digit{1,12} }
-i64 = { "-"? ~ digits12 }
-
+number = {sign? ~ digit{1,12} }
 
 
 token = @{ (!(WHITESPACE | NEWLINE) ~ ANY)+ }

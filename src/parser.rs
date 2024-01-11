@@ -298,7 +298,7 @@ fn do_parse_uci(
                                                                 }
                                                                 Rule::movestogo => {
                                                                     moves_to_go =
-                                                                        Some(parse_u8(sspi, Rule::digits3));
+                                                                        Some(parse_number(sspi));
                                                                 }
                                                                 _ => {}
                                                             };
@@ -313,13 +313,13 @@ fn do_parse_uci(
                                             for spi in sp_full.into_inner() {
                                                 match spi.as_rule() {
                                                     Rule::depth => {
-                                                        search.depth = Some(parse_u8(spi, Rule::digits3));
+                                                        search.depth = Some(parse_number(spi));
                                                     }
                                                     Rule::mate => {
-                                                        search.mate = Some(parse_u8(spi, Rule::digits3))
+                                                        search.mate = Some(parse_number(spi))
                                                     }
                                                     Rule::nodes => {
-                                                        search.nodes = Some(parse_u64(spi, Rule::digits12))
+                                                        search.nodes = Some(parse_number(spi))
                                                     }
                                                     Rule::searchmoves => {
                                                         for mt in spi.into_inner() {
@@ -451,10 +451,10 @@ fn do_parse_uci(
                                 opt_default = Some(sp.as_span().as_str());
                             }
                             Rule::option_min => {
-                                opt_min = Some(parse_i64(sp, Rule::i64));
+                                opt_min = Some(parse_number(sp));
                             }
                             Rule::option_max => {
-                                opt_max = Some(parse_i64(sp, Rule::i64));
+                                opt_max = Some(parse_number(sp));
                             }
                             Rule::option_var => {
                                 opt_var.push(String::from(sp.as_span().as_str()));
@@ -540,94 +540,80 @@ fn do_parse_uci(
                                 for spi in sp.into_inner() {
                                     match spi.as_rule() {
                                         Rule::info_depth => {
-                                            let info_depth = UciInfoAttribute::Depth(parse_u8(
-                                                spi,
-                                                Rule::digits3,
+                                            let info_depth = UciInfoAttribute::Depth(parse_number(
+                                                spi
                                             ));
                                             info_attr.push(info_depth);
                                             break;
                                         }
                                         Rule::info_seldepth => {
-                                            let info_depth = UciInfoAttribute::SelDepth(parse_u8(
-                                                spi,
-                                                Rule::digits3,
+                                            let info_depth = UciInfoAttribute::SelDepth(parse_number(
+                                                spi
                                             ));
                                             info_attr.push(info_depth);
                                             break;
                                         }
                                         Rule::info_time => {
-                                            let info_time = UciInfoAttribute::Time(Duration::milliseconds(parse_i64(
-                                                spi,
-                                                Rule::digits12,
+                                            let info_time = UciInfoAttribute::Time(Duration::milliseconds(parse_number(
+                                                spi
                                             )));
                                             info_attr.push(info_time);
                                             break;
                                         }
                                         Rule::info_nodes => {
-                                            let info_nodes = UciInfoAttribute::Nodes(parse_u64(
-                                                spi,
-                                                Rule::digits12,
+                                            let info_nodes = UciInfoAttribute::Nodes(parse_number(
+                                                spi
                                             ));
                                             info_attr.push(info_nodes);
                                             break;
                                         }
                                         Rule::info_currmovenum => {
-                                            let an_info = UciInfoAttribute::CurrMoveNum(parse_u64(
-                                                spi,
-                                                Rule::digits12,
+                                            let an_info = UciInfoAttribute::CurrMoveNum(parse_number(
+                                                spi
                                             )
-                                                as u16);
+                                                );
                                             info_attr.push(an_info);
                                             break;
                                         }
                                         Rule::info_hashfull => {
-                                            let an_info = UciInfoAttribute::HashFull(parse_u64(
-                                                spi,
-                                                Rule::digits12,
-                                            )
-                                                as u16);
+                                            let an_info = UciInfoAttribute::HashFull(parse_number(
+                                                spi
+                                            ));
                                             info_attr.push(an_info);
                                             break;
                                         }
                                         Rule::info_nps => {
-                                            let an_info = UciInfoAttribute::Nps(parse_u64(
-                                                spi,
-                                                Rule::digits12,
+                                            let an_info = UciInfoAttribute::Nps(parse_number(
+                                                spi
                                             ));
                                             info_attr.push(an_info);
                                             break;
                                         }
                                         Rule::info_tbhits => {
-                                            let an_info = UciInfoAttribute::TbHits(parse_u64(
-                                                spi,
-                                                Rule::digits12,
+                                            let an_info = UciInfoAttribute::TbHits(parse_number(
+                                                spi
                                             ));
                                             info_attr.push(an_info);
                                             break;
                                         }
                                         Rule::info_sbhits => {
-                                            let an_info = UciInfoAttribute::SbHits(parse_u64(
-                                                spi,
-                                                Rule::digits12,
+                                            let an_info = UciInfoAttribute::SbHits(parse_number(
+                                                spi
                                             ));
                                             info_attr.push(an_info);
                                             break;
                                         }
                                         Rule::info_cpuload => {
-                                            let an_info = UciInfoAttribute::CpuLoad(parse_u64(
-                                                spi,
-                                                Rule::digits12,
-                                            )
-                                                as u16);
+                                            let an_info = UciInfoAttribute::CpuLoad(parse_number(
+                                                spi
+                                            ));
                                             info_attr.push(an_info);
                                             break;
                                         }
                                         Rule::info_multipv => {
-                                            let an_info = UciInfoAttribute::MultiPv(parse_u64(
-                                                spi,
-                                                Rule::digits12,
-                                            )
-                                                as u16);
+                                            let an_info = UciInfoAttribute::MultiPv(parse_number(
+                                                spi
+                                            ));
                                             info_attr.push(an_info);
                                             break;
                                         }
@@ -673,8 +659,7 @@ fn do_parse_uci(
                                                     }
                                                     Rule::info_cpunr => {
                                                         cpu_nr =
-                                                            Some(parse_u64(spii, Rule::digits3)
-                                                                as u16);
+                                                            Some(parse_number(spii));
                                                     }
                                                     _ => {}
                                                 }
@@ -716,15 +701,15 @@ fn do_parse_uci(
                                             break;
                                         }
                                         Rule::info_score => {
-                                            let mut cp: Option<i32> = None;
-                                            let mut mate: Option<i8> = None;
-                                            let mut lb: Option<bool> = None;
-                                            let mut ub: Option<bool> = None;
+                                            let mut cp = None;
+                                            let mut mate = None;
+                                            let mut lb = None;
+                                            let mut ub = None;
 
                                             for spii in spi.into_inner() {
                                                 match spii.as_rule() {
-                                                    Rule::info_cp => cp = Some(parse_i64(spii, Rule::i64) as i32),
-                                                    Rule::info_mate => mate = Some(parse_i64(spii, Rule::i64) as i8),
+                                                    Rule::info_cp => cp = Some(parse_number(spii)),
+                                                    Rule::info_mate => mate = Some(parse_number(spii)),
                                                     Rule::info_lowerbound => lb = Some(true),
                                                     Rule::info_upperbound => ub = Some(true),
                                                     _ => {}
@@ -884,34 +869,17 @@ fn parse_milliseconds(pair: Pair<Rule>) -> i64 {
     0
 }
 
-fn parse_u8(pair: Pair<Rule>, rule: Rule) -> u8 {
+fn parse_number<T>(pair: Pair<Rule>) -> T
+where
+    T: Default + FromStr,
+{
     for sp in pair.into_inner() {
-        if sp.as_rule() == rule {
-            return str::parse::<u8>(sp.as_span().as_str()).unwrap();
+        if sp.as_rule() == Rule::number {
+            return str::parse::<T>(sp.as_span().as_str()).unwrap_or_default();
         }
     }
 
-    0
-}
-
-fn parse_u64(pair: Pair<Rule>, rule: Rule) -> u64 {
-    for sp in pair.into_inner() {
-        if sp.as_rule() == rule {
-            return str::parse::<u64>(sp.as_span().as_str()).unwrap();
-        }
-    }
-
-    0
-}
-
-fn parse_i64(pair: Pair<Rule>, rule: Rule) -> i64 {
-    for sp in pair.into_inner() {
-        if sp.as_rule() == rule {
-            return str::parse::<i64>(sp.as_span().as_str()).unwrap();
-        }
-    }
-
-    0
+    T::default()
 }
 
 #[cfg(not(feature = "chess"))]
@@ -2361,16 +2329,30 @@ mod tests {
 
     #[test]
     fn test_complex_parse_with_unknown() {
-        let msgs = parse_with_unknown("I am the walrus\nuci\ndebug on\nShould I stay \
-        or should I go?\nLondon calling\nquit\nAre we there yet?\n");
+        let msgs = parse_with_unknown(
+            "I am the walrus\nuci\ndebug on\nShould I stay \
+        or should I go?\nLondon calling\nquit\nAre we there yet?\n",
+        );
         assert_eq!(msgs.len(), 7);
-        assert_eq!(msgs[0], UciMessage::Unknown("I am the walrus".to_string(), None));
+        assert_eq!(
+            msgs[0],
+            UciMessage::Unknown("I am the walrus".to_string(), None)
+        );
         assert_eq!(msgs[1], UciMessage::Uci);
         assert_eq!(msgs[2], UciMessage::Debug(true));
-        assert_eq!(msgs[3], UciMessage::Unknown("Should I stay or should I go?".to_string(), None));
-        assert_eq!(msgs[4], UciMessage::Unknown("London calling".to_string(), None));
+        assert_eq!(
+            msgs[3],
+            UciMessage::Unknown("Should I stay or should I go?".to_string(), None)
+        );
+        assert_eq!(
+            msgs[4],
+            UciMessage::Unknown("London calling".to_string(), None)
+        );
         assert_eq!(msgs[5], UciMessage::Quit);
-        assert_eq!(msgs[6], UciMessage::Unknown("Are we there yet?".to_string(), None));
+        assert_eq!(
+            msgs[6],
+            UciMessage::Unknown("Are we there yet?".to_string(), None)
+        );
     }
 
     #[test]
