@@ -36,7 +36,7 @@ use vampirc_uci::parse;
 2. Some other useful imports (for message representation):
 
 ```rust
-use vampirc_uci::{UciMessage, MessageList, UciTimeControl, Serializable};
+use vampirc_uci::{UciMessage, MessageList, UciTimeControl, UciSerializable};
 ```
 
 3. Parse some input:

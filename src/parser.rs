@@ -951,7 +951,7 @@ fn piece_from_str(s: &str) -> Result<Piece, FmtError> {
 mod tests {
     use std::io::*;
 
-    use crate::uci::Serializable;
+    use crate::uci::UciSerializable;
 
     use super::*;
 
@@ -2113,7 +2113,7 @@ mod tests {
     #[test]
     fn test_info_multi1() {
         let ml = parse_strict("info score cp 13  depth 1 nodes 13 time 15 pv f1b5\n").unwrap();
-        println!("{}", ml[0].serialize());
+        println!("{}", ml[0].uci_serialize());
         assert_eq!(1, ml.len());
 
         #[cfg(not(feature = "chess"))]
@@ -2140,7 +2140,7 @@ mod tests {
         assert_eq!(m, ml[0]);
 
         assert_eq!(
-            m.serialize(),
+            m.uci_serialize(),
             "info score cp 13 depth 1 nodes 13 time 15 pv f1b5"
         )
     }
@@ -2149,7 +2149,7 @@ mod tests {
     #[test]
     fn test_info_multi2() {
         let ml = parse_strict("info depth 2 seldepth 2\n").unwrap();
-        println!("{}", ml[0].serialize());
+        println!("{}", ml[0].uci_serialize());
         assert_eq!(1, ml.len());
 
         let m = UciMessage::Info(vec![
@@ -2158,7 +2158,7 @@ mod tests {
         ]);
 
         assert_eq!(m, ml[0]);
-        assert_eq!(m.serialize(), "info depth 2 seldepth 2")
+        assert_eq!(m.uci_serialize(), "info depth 2 seldepth 2")
     }
 
     // info score cp 20  depth 3 nodes 423 time 15 pv f1c4 g8f6 b1c3
@@ -2166,7 +2166,7 @@ mod tests {
     fn test_info_multi3() {
         let ml = parse_strict("info score cp 20  depth 3 nodes 423 time 15 pv f1c4 g8f6 b1c3 \n")
             .unwrap();
-        println!("{}", ml[0].serialize());
+        println!("{}", ml[0].uci_serialize());
         assert_eq!(1, ml.len());
 
         #[cfg(not(feature = "chess"))]
@@ -2198,7 +2198,7 @@ mod tests {
         assert_eq!(m, ml[0]);
 
         assert_eq!(
-            m.serialize(),
+            m.uci_serialize(),
             "info score cp 20 depth 3 nodes 423 time 15 pv f1c4 g8f6 b1c3"
         )
     }

@@ -30,8 +30,8 @@ pub enum CommunicationDirection {
     EngineToGui,
 }
 
-pub trait Serializable: Display {
-    fn serialize(&self) -> String;
+pub trait UciSerializable: Display {
+    fn uci_serialize(&self) -> String;
 }
 
 /// An enumeration type containing representations for all messages supported by the UCI protocol.
@@ -333,20 +333,20 @@ impl UciMessage {
 
 impl Display for UciMessage {
     fn fmt(&self, f: &mut Formatter) -> FmtResult {
-        write!(f, "{}", self.serialize())
+        write!(f, "{}", self.uci_serialize())
     }
 }
 
-impl Serializable for UciMessage {
+impl UciSerializable for UciMessage {
     /// Serializes the command into a String.
     ///
     /// # Examples
     /// ```
-    /// use vampirc_uci::{UciMessage, Serializable};
+    /// use vampirc_uci::{UciMessage, UciSerializable};
     ///
-    /// println!("{}", UciMessage::Uci.serialize()); // Should print `uci`.
+    /// println!("{}", UciMessage::Uci.uci_serialize()); // Should print `uci`.
     /// ```
-    fn serialize(&self) -> String {
+    fn uci_serialize(&self) -> String {
         match self {
             UciMessage::Debug(on) => {
                 if *on {
@@ -526,12 +526,12 @@ impl Serializable for UciMessage {
 
                 s
             }
-            UciMessage::Option(config) => config.serialize(),
+            UciMessage::Option(config) => config.uci_serialize(),
             UciMessage::Info(info_line) => {
                 let mut s = String::from("info");
 
                 for a in info_line {
-                    s += &format!(" {}", a.serialize());
+                    s += &format!(" {}", a.uci_serialize());
                 }
 
                 s
@@ -756,22 +756,22 @@ impl UciOptionConfig {
     }
 }
 
-impl Serializable for UciOptionConfig {
+impl UciSerializable for UciOptionConfig {
     /// Serializes this option config into a full UCI message string.
     ///
     /// # Examples
     ///
     /// ```
-    /// use vampirc_uci::{UciMessage, UciOptionConfig, Serializable};
+    /// use vampirc_uci::{UciMessage, UciOptionConfig, UciSerializable};
     ///
     /// let m = UciMessage::Option(UciOptionConfig::Check {
     ///     name: String::from("Nullmove"),
     ///     default: Some(true)
     /// });
     ///
-    /// assert_eq!(m.serialize(), "option name Nullmove type check default true");
+    /// assert_eq!(m.uci_serialize(), "option name Nullmove type check default true");
     /// ```
-    fn serialize(&self) -> String {
+    fn uci_serialize(&self) -> String {
         let mut s = String::from(format!(
             "option name {} type {}",
             self.get_name(),
@@ -823,7 +823,7 @@ impl Serializable for UciOptionConfig {
 
 impl Display for UciOptionConfig {
     fn fmt(&self, f: &mut Formatter) -> FmtResult {
-        write!(f, "{}", self.serialize())
+        write!(f, "{}", self.uci_serialize())
     }
 }
 
@@ -973,9 +973,9 @@ impl UciInfoAttribute {
     }
 }
 
-impl Serializable for UciInfoAttribute {
+impl UciSerializable for UciInfoAttribute {
     /// Returns the attribute serialized as a String.
-    fn serialize(&self) -> String {
+    fn uci_serialize(&self) -> String {
         let mut s = format!("{}", self.get_name());
         match self {
             UciInfoAttribute::Depth(depth) => s += format!(" {}", *depth).as_str(),
@@ -1041,7 +1041,7 @@ impl Serializable for UciInfoAttribute {
 
 impl Display for UciInfoAttribute {
     fn fmt(&self, f: &mut Formatter) -> FmtResult {
-        write!(f, "{}", self.serialize())
+        write!(f, "{}", self.uci_serialize())
     }
 }
 
@@ -1236,7 +1236,7 @@ impl Display for ByteVecUciMessage {
 
 impl From<UciMessage> for ByteVecUciMessage {
     fn from(m: UciMessage) -> Self {
-        let b = Vec::from((m.serialize() + "\n").as_bytes());
+        let b = Vec::from((m.uci_serialize() + "\n").as_bytes());
         ByteVecUciMessage {
             message: m,
             bytes: b,
@@ -1288,7 +1288,7 @@ mod tests {
     #[test]
     fn test_serialize_id_name() {
         assert_eq!(
-            UciMessage::id_name("Vampirc 0.5.0").serialize().as_str(),
+            UciMessage::id_name("Vampirc 0.5.0").uci_serialize().as_str(),
             "id name Vampirc 0.5.0"
         );
     }
@@ -1296,19 +1296,19 @@ mod tests {
     #[test]
     fn test_serialize_id_author() {
         assert_eq!(
-            UciMessage::id_author("Matija Kejžar").serialize().as_str(),
+            UciMessage::id_author("Matija Kejžar").uci_serialize().as_str(),
             "id author Matija Kejžar"
         );
     }
 
     #[test]
     fn test_serialize_uciok() {
-        assert_eq!(UciMessage::UciOk.serialize().as_str(), "uciok");
+        assert_eq!(UciMessage::UciOk.uci_serialize().as_str(), "uciok");
     }
 
     #[test]
     fn test_serialize_readyok() {
-        assert_eq!(UciMessage::ReadyOk.serialize().as_str(), "readyok");
+        assert_eq!(UciMessage::ReadyOk.uci_serialize().as_str(), "readyok");
     }
 
     #[cfg(not(feature = "chess"))]
@@ -1319,7 +1319,7 @@ mod tests {
                 UciSquare::from('a', 1),
                 UciSquare::from('a', 7)
             ))
-            .serialize()
+            .uci_serialize()
             .as_str(),
             "bestmove a1a7"
         );
@@ -1330,7 +1330,7 @@ mod tests {
     fn test_serialize_bestmove() {
         assert_eq!(
             UciMessage::best_move(ChessMove::new(Square::A1, Square::A7, None))
-                .serialize()
+                .uci_serialize()
                 .as_str(),
             "bestmove a1a7"
         );
@@ -1344,7 +1344,7 @@ mod tests {
                 UciMove::from_to(UciSquare::from('b', 4), UciSquare::from('a', 5)),
                 UciMove::from_to(UciSquare::from('b', 4), UciSquare::from('d', 6))
             )
-            .serialize()
+            .uci_serialize()
             .as_str(),
             "bestmove b4a5 ponder b4d6"
         );
@@ -1358,7 +1358,7 @@ mod tests {
                 ChessMove::new(Square::B4, Square::A5, None),
                 ChessMove::new(Square::B4, Square::D6, None),
             )
-            .serialize()
+            .uci_serialize()
             .as_str(),
             "bestmove b4a5 ponder b4d6"
         );
@@ -1368,7 +1368,7 @@ mod tests {
     fn test_serialize_copyprotection() {
         assert_eq!(
             UciMessage::CopyProtection(ProtectionState::Checking)
-                .serialize()
+                .uci_serialize()
                 .as_str(),
             "copyprotection checking"
         );
@@ -1378,7 +1378,7 @@ mod tests {
     fn test_serialize_registration() {
         assert_eq!(
             UciMessage::Registration(ProtectionState::Ok)
-                .serialize()
+                .uci_serialize()
                 .as_str(),
             "registration ok"
         );
@@ -1392,7 +1392,7 @@ mod tests {
         });
 
         assert_eq!(
-            m.serialize(),
+            m.uci_serialize(),
             "option name Nullmove type check default false"
         );
     }
@@ -1407,7 +1407,7 @@ mod tests {
         });
 
         assert_eq!(
-            m.serialize(),
+            m.uci_serialize(),
             "option name Selectivity type spin default 2 min 0 max 4"
         );
     }
@@ -1425,7 +1425,7 @@ mod tests {
         });
 
         assert_eq!(
-            m.serialize(),
+            m.uci_serialize(),
             "option name Style type combo default Normal var Solid var Normal var Risky"
         );
     }
@@ -1438,7 +1438,7 @@ mod tests {
         });
 
         assert_eq!(
-            m.serialize(),
+            m.uci_serialize(),
             "option name Nalimov Path type string default c:\\"
         );
     }
@@ -1449,7 +1449,7 @@ mod tests {
             name: "Clear Hash".to_string(),
         });
 
-        assert_eq!(m.serialize(), "option name Clear Hash type button");
+        assert_eq!(m.uci_serialize(), "option name Clear Hash type button");
     }
 
     #[test]
@@ -1458,7 +1458,7 @@ mod tests {
 
         let m = UciMessage::Info(attributes);
 
-        assert_eq!(m.serialize(), "info depth 24");
+        assert_eq!(m.uci_serialize(), "info depth 24");
     }
 
     #[test]
@@ -1468,7 +1468,7 @@ mod tests {
 
         let m = UciMessage::Info(attributes);
 
-        assert_eq!(m.serialize(), "info depth 22 seldepth 17");
+        assert_eq!(m.uci_serialize(), "info depth 22 seldepth 17");
     }
 
     // info depth 2 score cp 214 time 1242 nodes 2124 nps 34928 pv e2e4 e7e5 g1f3
@@ -1497,7 +1497,7 @@ mod tests {
         let m = UciMessage::Info(attributes);
 
         assert_eq!(
-            m.serialize(),
+            m.uci_serialize(),
             "info depth 2 score cp 214 time 1242 nodes 2124 nps 34928 pv e2e4 e7e5 g1f3"
         );
     }
@@ -1534,7 +1534,7 @@ mod tests {
 
         let m = UciMessage::Info(attributes);
 
-        assert_eq!(m.serialize(), "info depth 5 seldepth 5 multipv 1 score cp -5 nodes 1540 nps 54 tbhits 0 time 28098 pv a8b6 e3b6 b1b6 a5a7 e2e3");
+        assert_eq!(m.uci_serialize(), "info depth 5 seldepth 5 multipv 1 score cp -5 nodes 1540 nps 54 tbhits 0 time 28098 pv a8b6 e3b6 b1b6 a5a7 e2e3");
     }
 
     #[test]
@@ -1548,7 +1548,7 @@ mod tests {
 
         let m = UciMessage::Info(attributes);
 
-        assert_eq!(m.serialize(), "info score cp 817 upperbound");
+        assert_eq!(m.uci_serialize(), "info score cp 817 upperbound");
     }
 
     #[test]
@@ -1562,7 +1562,7 @@ mod tests {
 
         let m = UciMessage::Info(attributes);
 
-        assert_eq!(m.serialize(), "info score mate -3");
+        assert_eq!(m.uci_serialize(), "info score mate -3");
     }
 
     #[test]
@@ -1582,7 +1582,7 @@ mod tests {
 
         let m = UciMessage::Info(attributes);
 
-        assert_eq!(m.serialize(), "info currmove a5c3");
+        assert_eq!(m.uci_serialize(), "info currmove a5c3");
     }
 
     #[test]
@@ -1604,7 +1604,7 @@ mod tests {
 
         let m = UciMessage::Info(attributes);
 
-        assert_eq!(m.serialize(), "info currmove a2f2 currmovenum 2");
+        assert_eq!(m.uci_serialize(), "info currmove a2f2 currmovenum 2");
     }
 
     #[test]
@@ -1613,7 +1613,7 @@ mod tests {
 
         let m = UciMessage::Info(attributes);
 
-        assert_eq!(m.serialize(), "info hashfull 455");
+        assert_eq!(m.uci_serialize(), "info hashfull 455");
     }
 
     #[test]
@@ -1622,7 +1622,7 @@ mod tests {
 
         let m = UciMessage::Info(attributes);
 
-        assert_eq!(m.serialize(), "info nps 5098");
+        assert_eq!(m.uci_serialize(), "info nps 5098");
     }
 
     #[test]
@@ -1632,7 +1632,7 @@ mod tests {
 
         let m = UciMessage::Info(attributes);
 
-        assert_eq!(m.serialize(), "info tbhits 987 sbhits 409");
+        assert_eq!(m.uci_serialize(), "info tbhits 987 sbhits 409");
     }
 
     #[test]
@@ -1641,7 +1641,7 @@ mod tests {
 
         let m = UciMessage::Info(attributes);
 
-        assert_eq!(m.serialize(), "info cpuload 823");
+        assert_eq!(m.uci_serialize(), "info cpuload 823");
     }
 
     #[test]
@@ -1653,7 +1653,7 @@ mod tests {
         let m = UciMessage::Info(attributes);
 
         assert_eq!(
-            m.serialize(),
+            m.uci_serialize(),
             "info string Invalid move: d6e1 - violates chess rules"
         );
     }
@@ -1674,7 +1674,7 @@ mod tests {
 
         let m = UciMessage::Info(attributes);
 
-        assert_eq!(m.serialize(), "info refutation d1h5 g6h5");
+        assert_eq!(m.uci_serialize(), "info refutation d1h5 g6h5");
     }
 
     #[test]
@@ -1699,7 +1699,7 @@ mod tests {
 
         let m = UciMessage::Info(attributes);
 
-        assert_eq!(m.serialize(), "info currline cpunr 1 d1h5 g6h5");
+        assert_eq!(m.uci_serialize(), "info currline cpunr 1 d1h5 g6h5");
     }
 
     #[test]
@@ -1711,7 +1711,7 @@ mod tests {
 
         let m = UciMessage::Info(attributes);
 
-        assert_eq!(m.serialize(), "info other Some other message.");
+        assert_eq!(m.uci_serialize(), "info other Some other message.");
     }
 
     #[test]
@@ -1721,7 +1721,7 @@ mod tests {
                 name: "Some option".to_string(),
                 value: None,
             }
-            .serialize(),
+            .uci_serialize(),
             "setoption name Some option value <empty>"
         )
     }
@@ -1733,7 +1733,7 @@ mod tests {
                 name: "ABC".to_string(),
                 value: Some(String::from("")),
             }
-            .serialize(),
+            .uci_serialize(),
             "setoption name ABC value <empty>"
         )
     }
@@ -1753,7 +1753,7 @@ mod tests {
     fn test_byte_vec_message_creation() {
         let uok = ByteVecUciMessage::from(UciMessage::UciOk);
         assert_eq!(uok.message, UciMessage::UciOk);
-        assert_eq!(uok.bytes, (UciMessage::UciOk.serialize() + "\n").as_bytes());
+        assert_eq!(uok.bytes, (UciMessage::UciOk.uci_serialize() + "\n").as_bytes());
 
         let asm: UciMessage = uok.into();
         assert_eq!(asm, UciMessage::UciOk);
@@ -1773,7 +1773,7 @@ mod tests {
         let uc = Vec::from(um);
         assert_eq!(
             uc,
-            Vec::from((UciMessage::UciNewGame.serialize() + "\n").as_bytes())
+            Vec::from((UciMessage::UciNewGame.uci_serialize() + "\n").as_bytes())
         );
     }
 

@@ -32,7 +32,7 @@ pub use self::uci::ByteVecUciMessage;
 pub use self::uci::CommunicationDirection;
 pub use self::uci::MessageList;
 pub use self::uci::ProtectionState;
-pub use self::uci::Serializable;
+pub use self::uci::UciSerializable;
 pub use self::uci::UciFen;
 pub use self::uci::UciInfoAttribute;
 pub use self::uci::UciMessage;
