@@ -12,6 +12,9 @@ use chess::ChessMove;
 use chrono::Duration;
 use pest::error::Error as PestError;
 
+#[cfg(feature = "specta")]
+use specta::Type;
+
 use crate::parser::Rule;
 
 /// Specifies whether a message is engine- or GUI-bound.
@@ -670,6 +673,7 @@ pub enum ProtectionState {
 
 /// Represents a UCI option definition.
 #[derive(Clone, Eq, PartialEq, Debug, Hash)]
+#[cfg_attr(feature = "specta", derive(Type))]
 pub enum UciOptionConfig {
     /// The option of type `check` (a boolean).
     Check {
