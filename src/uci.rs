@@ -15,6 +15,9 @@ use pest::error::Error as PestError;
 #[cfg(feature = "specta")]
 use specta::Type;
 
+#[cfg(feature = "serde")]
+use serde::Serialize;
+
 use crate::parser::Rule;
 
 /// Specifies whether a message is engine- or GUI-bound.
@@ -674,6 +677,8 @@ pub enum ProtectionState {
 /// Represents a UCI option definition.
 #[derive(Clone, Eq, PartialEq, Debug, Hash)]
 #[cfg_attr(feature = "specta", derive(Type))]
+#[cfg_attr(feature = "serde", derive(Serialize))]
+#[cfg_attr(feature = "serde", serde(tag = "type", content = "value", rename_all = "camelCase"))]
 pub enum UciOptionConfig {
     /// The option of type `check` (a boolean).
     Check {
