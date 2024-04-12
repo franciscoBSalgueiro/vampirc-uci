@@ -812,8 +812,10 @@ pub struct Score {
     /// The probability of each result (win, draw, loss).
     pub wdl: Option<(i32, i32, i32)>,
     /// The value sent is the lower bound.
+    #[cfg_attr(feature = "serde", serde(skip))]
     pub lower_bound: Option<bool>,
     /// The value sent is the upper bound.
+    #[cfg_attr(feature = "serde", serde(skip))]
     pub upper_bound: Option<bool>,
 }
 
