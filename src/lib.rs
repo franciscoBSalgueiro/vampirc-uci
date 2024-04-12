@@ -32,7 +32,6 @@ pub use self::uci::ByteVecUciMessage;
 pub use self::uci::CommunicationDirection;
 pub use self::uci::MessageList;
 pub use self::uci::ProtectionState;
-pub use self::uci::UciSerializable;
 pub use self::uci::UciFen;
 pub use self::uci::UciInfoAttribute;
 pub use self::uci::UciMessage;
@@ -42,6 +41,7 @@ pub use self::uci::UciOptionConfig;
 #[cfg(not(feature = "chess"))]
 pub use self::uci::UciPiece;
 pub use self::uci::UciSearchControl;
+pub use self::uci::UciSerializable;
 #[cfg(not(feature = "chess"))]
 pub use self::uci::UciSquare;
 pub use self::uci::UciTimeControl;
