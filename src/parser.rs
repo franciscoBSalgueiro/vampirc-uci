@@ -142,7 +142,7 @@ fn do_parse_uci(
     let mut single: Option<UciMessage> = None;
 
     pairs
-        .map(|pair: Pair<_>| match pair.as_rule() {
+        .map(|pair| match pair.as_rule() {
             Rule::uci => UciMessage::Uci,
             Rule::debug => {
                 for sp in pair.into_inner() {
@@ -154,8 +154,8 @@ fn do_parse_uci(
             }
             Rule::isready => UciMessage::IsReady,
             Rule::setoption => {
-                let mut name: String = String::default();
-                let mut value: String = String::default();
+                let mut name = String::default();
+                let mut value = None;
 
                 for sp in pair.into_inner() {
                     if sp.as_rule() == Rule::option_internal {
@@ -165,7 +165,10 @@ fn do_parse_uci(
                                     name = spi.as_span().as_str().trim().to_string();
                                 }
                                 Rule::option_value => {
-                                    value = spi.as_span().as_str().to_string();
+                                    value = match spi.as_span().as_str().to_string() {
+                                        e if e.is_empty() => None,
+                                        s => Some(s),
+                                    }
                                 }
                                 _ => {}
                             }
@@ -173,12 +176,7 @@ fn do_parse_uci(
                     }
                 }
 
-                let val = if value != String::default() {
-                    Some(value)
-                } else {
-                    None
-                };
-                UciMessage::SetOption { name, value: val }
+                UciMessage::SetOption { name, value }
             }
             Rule::register => {
                 for sp in pair.into_inner() {
@@ -187,7 +185,7 @@ fn do_parse_uci(
                             return UciMessage::register_later();
                         }
                         Rule::register_nc => {
-                            let mut name: &str = "";
+                            let mut name = "";
 
                             for spi in sp.into_inner() {
                                 match spi.as_rule() {
@@ -239,15 +237,15 @@ fn do_parse_uci(
                 }
             }
             Rule::go => {
-                let mut time_control: Option<UciTimeControl> = None;
+                let mut time_control = None;
                 let mut tl = false;
-                let mut wtime: Option<i64> = None;
-                let mut btime: Option<i64> = None;
-                let mut winc: Option<i64> = None;
-                let mut binc: Option<i64> = None;
-                let mut moves_to_go: Option<u8> = None;
+                let mut wtime = None;
+                let mut btime = None;
+                let mut winc = None;
+                let mut binc = None;
+                let mut moves_to_go = None;
 
-                let mut search: UciSearchControl = UciSearchControl::default();
+                let mut search = UciSearchControl::default();
 
                 for sp in pair.into_inner() {
                     match sp.as_rule() {
@@ -419,12 +417,12 @@ fn do_parse_uci(
                 }
             }
             Rule::option => {
-                let mut name: Option<&str> = None;
-                let mut opt_default: Option<&str> = None;
-                let mut opt_min: Option<i64> = None;
-                let mut opt_max: Option<i64> = None;
-                let mut opt_var: Vec<String> = Vec::default();
-                let mut type_pair: Option<Pair<Rule>> = None;
+                let mut name = None;
+                let mut opt_default = None;
+                let mut opt_min = None;
+                let mut opt_max = None;
+                let mut opt_var = Vec::default();
+                let mut type_pair = None;
 
                 for sp in pair.into_inner() {
                     match sp.as_rule() {
@@ -525,204 +523,169 @@ fn do_parse_uci(
                 let mut info_attr: Vec<UciInfoAttribute> = vec![];
 
                 for sp in pair.into_inner() {
-                    match sp.as_rule() {
-                        Rule::info_attribute => {
-                            for spi in sp.into_inner() {
-                                match spi.as_rule() {
-                                    Rule::info_depth => {
-                                        let info_depth = UciInfoAttribute::Depth(parse_number(spi));
-                                        info_attr.push(info_depth);
-                                        break;
-                                    }
-                                    Rule::info_seldepth => {
-                                        let info_depth =
-                                            UciInfoAttribute::SelDepth(parse_number(spi));
-                                        info_attr.push(info_depth);
-                                        break;
-                                    }
-                                    Rule::info_time => {
-                                        let info_time = UciInfoAttribute::Time(
-                                            Duration::milliseconds(parse_number(spi)),
-                                        );
-                                        info_attr.push(info_time);
-                                        break;
-                                    }
-                                    Rule::info_nodes => {
-                                        let info_nodes = UciInfoAttribute::Nodes(parse_number(spi));
-                                        info_attr.push(info_nodes);
-                                        break;
-                                    }
-                                    Rule::info_currmovenum => {
-                                        let an_info =
-                                            UciInfoAttribute::CurrMoveNum(parse_number(spi));
-                                        info_attr.push(an_info);
-                                        break;
-                                    }
-                                    Rule::info_hashfull => {
-                                        let an_info = UciInfoAttribute::HashFull(parse_number(spi));
-                                        info_attr.push(an_info);
-                                        break;
-                                    }
-                                    Rule::info_nps => {
-                                        let an_info = UciInfoAttribute::Nps(parse_number(spi));
-                                        info_attr.push(an_info);
-                                        break;
-                                    }
-                                    Rule::info_tbhits => {
-                                        let an_info = UciInfoAttribute::TbHits(parse_number(spi));
-                                        info_attr.push(an_info);
-                                        break;
-                                    }
-                                    Rule::info_sbhits => {
-                                        let an_info = UciInfoAttribute::SbHits(parse_number(spi));
-                                        info_attr.push(an_info);
-                                        break;
-                                    }
-                                    Rule::info_cpuload => {
-                                        let an_info = UciInfoAttribute::CpuLoad(parse_number(spi));
-                                        info_attr.push(an_info);
-                                        break;
-                                    }
-                                    Rule::info_multipv => {
-                                        let an_info = UciInfoAttribute::MultiPv(parse_number(spi));
-                                        info_attr.push(an_info);
-                                        break;
-                                    }
-                                    Rule::info_pv => {
-                                        #[cfg(not(feature = "chess"))]
-                                        let mut mv: Vec<
-                                            UciMove,
-                                        > = vec![];
-                                        #[cfg(feature = "chess")]
-                                        let mut mv: Vec<
-                                            ChessMove,
-                                        > = vec![];
-                                        for spii in spi.into_inner() {
-                                            if spii.as_rule() == Rule::a_move {
-                                                let a_move = parse_a_move(spii);
-                                                mv.push(a_move);
-                                            }
-                                        }
-                                        info_attr.push(UciInfoAttribute::Pv(mv));
-                                        break;
-                                    }
-                                    Rule::info_refutation => {
-                                        #[cfg(not(feature = "chess"))]
-                                        let mut mv: Vec<
-                                            UciMove,
-                                        > = vec![];
-                                        #[cfg(feature = "chess")]
-                                        let mut mv: Vec<
-                                            ChessMove,
-                                        > = vec![];
-                                        for spii in spi.into_inner() {
-                                            if spii.as_rule() == Rule::a_move {
-                                                let a_move = parse_a_move(spii);
-                                                mv.push(a_move);
-                                            }
-                                        }
-                                        info_attr.push(UciInfoAttribute::Refutation(mv));
-                                        break;
-                                    }
-                                    Rule::info_currline => {
-                                        #[cfg(not(feature = "chess"))]
-                                        let mut mv: Vec<
-                                            UciMove,
-                                        > = vec![];
-                                        #[cfg(feature = "chess")]
-                                        let mut mv: Vec<
-                                            ChessMove,
-                                        > = vec![];
-                                        let mut cpu_nr: Option<u16> = None;
-                                        for spii in spi.into_inner() {
-                                            match spii.as_rule() {
-                                                Rule::a_move => {
-                                                    let a_move = parse_a_move(spii);
-                                                    mv.push(a_move);
-                                                }
-                                                Rule::info_cpunr => {
-                                                    cpu_nr = Some(parse_number(spii));
-                                                }
-                                                _ => {}
-                                            }
-                                        }
-                                        info_attr
-                                            .push(UciInfoAttribute::CurrLine { cpu_nr, line: mv });
-                                        break;
-                                    }
-                                    Rule::info_string => {
-                                        for spii in spi.into_inner() {
-                                            if spii.as_rule() == Rule::info_string_string {
-                                                let an_info = UciInfoAttribute::String(
-                                                    spii.as_span().as_str().to_owned(),
-                                                );
-                                                info_attr.push(an_info);
-                                                break;
-                                            }
-                                        }
-                                        break;
-                                    }
-                                    Rule::info_currmove => {
-                                        for spii in spi.into_inner() {
-                                            if spii.as_rule() == Rule::a_move {
-                                                let an_info =
-                                                    UciInfoAttribute::CurrMove(parse_a_move(spii));
-                                                info_attr.push(an_info);
-                                                break;
-                                            }
-                                        }
-                                        break;
-                                    }
-                                    Rule::info_score => {
-                                        let mut cp = None;
-                                        let mut mate = None;
-                                        let mut wdl = None;
-                                        let mut lb = None;
-                                        let mut ub = None;
-
-                                        for spii in spi.into_inner() {
-                                            match spii.as_rule() {
-                                                Rule::info_cp => cp = Some(parse_number(spii)),
-                                                Rule::info_mate => mate = Some(parse_number(spii)),
-                                                Rule::info_wdl => wdl = Some(parse_wdl(spii)),
-                                                Rule::info_lowerbound => lb = Some(true),
-                                                Rule::info_upperbound => ub = Some(true),
-                                                _ => {}
-                                            }
-                                        }
-
-                                        info_attr.push(UciInfoAttribute::Score {
-                                            cp,
-                                            mate,
-                                            wdl,
-                                            lower_bound: lb,
-                                            upper_bound: ub,
-                                        });
-                                    }
-                                    Rule::info_any => {
-                                        let mut s: Option<String> = None;
-                                        let mut t: Option<String> = None;
-
-                                        for spii in spi.into_inner() {
-                                            match spii.as_rule() {
-                                                Rule::token => {
-                                                    t = Some(spii.as_span().as_str().to_owned());
-                                                }
-                                                Rule::info_string_string => {
-                                                    s = Some(spii.as_span().as_str().to_owned());
-                                                }
-                                                _ => {}
-                                            }
-                                        }
-                                        let an_info = UciInfoAttribute::Any(t.unwrap(), s.unwrap());
-                                        info_attr.push(an_info);
-                                        break;
-                                    }
-                                    _ => unreachable!(),
+                    if sp.as_rule() == Rule::info_attribute {
+                        for spi in sp.into_inner() {
+                            match spi.as_rule() {
+                                Rule::info_depth => {
+                                    let info_depth = UciInfoAttribute::Depth(parse_number(spi));
+                                    info_attr.push(info_depth);
                                 }
+                                Rule::info_seldepth => {
+                                    let info_depth = UciInfoAttribute::SelDepth(parse_number(spi));
+                                    info_attr.push(info_depth);
+                                }
+                                Rule::info_time => {
+                                    let info_time = UciInfoAttribute::Time(Duration::milliseconds(
+                                        parse_number(spi),
+                                    ));
+                                    info_attr.push(info_time);
+                                }
+                                Rule::info_nodes => {
+                                    let info_nodes = UciInfoAttribute::Nodes(parse_number(spi));
+                                    info_attr.push(info_nodes);
+                                }
+                                Rule::info_currmovenum => {
+                                    let an_info = UciInfoAttribute::CurrMoveNum(parse_number(spi));
+                                    info_attr.push(an_info);
+                                }
+                                Rule::info_hashfull => {
+                                    let an_info = UciInfoAttribute::HashFull(parse_number(spi));
+                                    info_attr.push(an_info);
+                                }
+                                Rule::info_nps => {
+                                    let an_info = UciInfoAttribute::Nps(parse_number(spi));
+                                    info_attr.push(an_info);
+                                }
+                                Rule::info_tbhits => {
+                                    let an_info = UciInfoAttribute::TbHits(parse_number(spi));
+                                    info_attr.push(an_info);
+                                }
+                                Rule::info_sbhits => {
+                                    let an_info = UciInfoAttribute::SbHits(parse_number(spi));
+                                    info_attr.push(an_info);
+                                }
+                                Rule::info_cpuload => {
+                                    let an_info = UciInfoAttribute::CpuLoad(parse_number(spi));
+                                    info_attr.push(an_info);
+                                }
+                                Rule::info_multipv => {
+                                    let an_info = UciInfoAttribute::MultiPv(parse_number(spi));
+                                    info_attr.push(an_info);
+                                }
+                                Rule::info_pv => {
+                                    #[cfg(not(feature = "chess"))]
+                                    let mut mv: Vec<UciMove> = vec![];
+                                    #[cfg(feature = "chess")]
+                                    let mut mv: Vec<ChessMove> = vec![];
+                                    for spii in spi.into_inner() {
+                                        if spii.as_rule() == Rule::a_move {
+                                            let a_move = parse_a_move(spii);
+                                            mv.push(a_move);
+                                        }
+                                    }
+                                    info_attr.push(UciInfoAttribute::Pv(mv));
+                                }
+                                Rule::info_refutation => {
+                                    #[cfg(not(feature = "chess"))]
+                                    let mut mv: Vec<UciMove> = vec![];
+                                    #[cfg(feature = "chess")]
+                                    let mut mv: Vec<ChessMove> = vec![];
+                                    for spii in spi.into_inner() {
+                                        if spii.as_rule() == Rule::a_move {
+                                            let a_move = parse_a_move(spii);
+                                            mv.push(a_move);
+                                        }
+                                    }
+                                    info_attr.push(UciInfoAttribute::Refutation(mv));
+                                }
+                                Rule::info_currline => {
+                                    #[cfg(not(feature = "chess"))]
+                                    let mut mv: Vec<UciMove> = vec![];
+                                    #[cfg(feature = "chess")]
+                                    let mut mv: Vec<ChessMove> = vec![];
+                                    let mut cpu_nr: Option<u16> = None;
+                                    for spii in spi.into_inner() {
+                                        match spii.as_rule() {
+                                            Rule::a_move => {
+                                                let a_move = parse_a_move(spii);
+                                                mv.push(a_move);
+                                            }
+                                            Rule::info_cpunr => {
+                                                cpu_nr = Some(parse_number(spii));
+                                            }
+                                            _ => {}
+                                        }
+                                    }
+                                    info_attr.push(UciInfoAttribute::CurrLine { cpu_nr, line: mv });
+                                }
+                                Rule::info_string => {
+                                    for spii in spi.into_inner() {
+                                        if spii.as_rule() == Rule::info_string_string {
+                                            let an_info = UciInfoAttribute::String(
+                                                spii.as_span().as_str().to_owned(),
+                                            );
+                                            info_attr.push(an_info);
+                                            break;
+                                        }
+                                    }
+                                }
+                                Rule::info_currmove => {
+                                    for spii in spi.into_inner() {
+                                        if spii.as_rule() == Rule::a_move {
+                                            let an_info =
+                                                UciInfoAttribute::CurrMove(parse_a_move(spii));
+                                            info_attr.push(an_info);
+                                            break;
+                                        }
+                                    }
+                                }
+                                Rule::info_score => {
+                                    let mut cp = None;
+                                    let mut mate = None;
+                                    let mut wdl = None;
+                                    let mut lb = None;
+                                    let mut ub = None;
+
+                                    for spii in spi.into_inner() {
+                                        match spii.as_rule() {
+                                            Rule::info_cp => cp = Some(parse_number(spii)),
+                                            Rule::info_mate => mate = Some(parse_number(spii)),
+                                            Rule::info_wdl => wdl = Some(parse_wdl(spii)),
+                                            Rule::info_lowerbound => lb = Some(true),
+                                            Rule::info_upperbound => ub = Some(true),
+                                            _ => {}
+                                        }
+                                    }
+
+                                    info_attr.push(UciInfoAttribute::Score {
+                                        cp,
+                                        mate,
+                                        wdl,
+                                        lower_bound: lb,
+                                        upper_bound: ub,
+                                    });
+                                }
+                                Rule::info_any => {
+                                    let mut s: Option<String> = None;
+                                    let mut t: Option<String> = None;
+
+                                    for spii in spi.into_inner() {
+                                        match spii.as_rule() {
+                                            Rule::token => {
+                                                t = Some(spii.as_span().as_str().to_owned());
+                                            }
+                                            Rule::info_string_string => {
+                                                s = Some(spii.as_span().as_str().to_owned());
+                                            }
+                                            _ => {}
+                                        }
+                                    }
+                                    let an_info = UciInfoAttribute::Any(t.unwrap(), s.unwrap());
+                                    info_attr.push(an_info);
+                                }
+                                _ => unreachable!(),
                             }
                         }
-                        _ => unreachable!(),
                     }
                 }
 
@@ -775,25 +738,11 @@ fn parse_id_text(id_pair: Pair<Rule>, rule: Rule) -> UciMessage {
 
 #[cfg(not(feature = "chess"))]
 fn parse_square(sq_pair: Pair<Rule>) -> UciSquare {
-    let mut file: char = '\0';
-    let mut rank: u8 = 0;
-
-    match sq_pair.as_rule() {
-        Rule::square => {
-            for sp in sq_pair.into_inner() {
-                match sp.as_rule() {
-                    Rule::file => {
-                        file = sp.as_span().as_str().chars().next().unwrap();
-                    }
-                    Rule::rank => {
-                        rank = str::parse(sp.as_span().as_str()).unwrap();
-                    }
-                    _ => unreachable!(),
-                }
-            }
-        }
-        _ => unreachable!(),
-    }
+    let mut pairs = sq_pair.into_inner();
+    let pair = pairs.next().unwrap();
+    let file = pair.as_span().as_str().chars().next().unwrap();
+    let pair = pairs.next().unwrap();
+    let rank = pair.as_span().as_str().parse().unwrap();
 
     UciSquare::from(file, rank)
 }
@@ -865,7 +814,7 @@ fn parse_wdl(pair: Pair<Rule>) -> (i32, i32, i32) {
 fn parse_a_move(sp: Pair<Rule>) -> UciMove {
     let mut from_sq = UciSquare::default();
     let mut to_sq = UciSquare::default();
-    let mut promotion: Option<UciPiece> = None;
+    let mut promotion = None;
 
     for move_token in sp.into_inner() {
         match move_token.as_rule() {
