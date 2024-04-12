@@ -7,19 +7,11 @@
 //!
 //! See the [README.md](https://github.com/vampirc/vampirc-uci/blob/master/README.md) file for usage instructions.
 
-#[cfg(feature = "chess")]
-extern crate chess;
 extern crate chrono;
 extern crate pest;
 #[macro_use]
 extern crate pest_derive;
 
-#[cfg(feature = "chess")]
-pub use chess::ChessMove;
-#[cfg(feature = "chess")]
-pub use chess::Piece;
-#[cfg(feature = "chess")]
-pub use chess::Square;
 pub use chrono::Duration;
 pub use pest::error::Error;
 
@@ -35,14 +27,11 @@ pub use self::uci::ProtectionState;
 pub use self::uci::UciFen;
 pub use self::uci::UciInfoAttribute;
 pub use self::uci::UciMessage;
-#[cfg(not(feature = "chess"))]
 pub use self::uci::UciMove;
 pub use self::uci::UciOptionConfig;
-#[cfg(not(feature = "chess"))]
 pub use self::uci::UciPiece;
 pub use self::uci::UciSearchControl;
 pub use self::uci::UciSerializable;
-#[cfg(not(feature = "chess"))]
 pub use self::uci::UciSquare;
 pub use self::uci::UciTimeControl;
 

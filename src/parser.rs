@@ -4,8 +4,6 @@
 //! Behind the scenes, it uses the [PEST parser](https://github.com/pest-parser/pest). The corresponding PEG grammar is
 //! available [here](https://github.com/vampirc/vampirc-uci/blob/master/res/uci.pest).
 
-#[cfg(feature = "chess")]
-use std::fmt::Error as FmtError;
 use std::str::FromStr;
 
 use chrono::Duration;
@@ -13,13 +11,10 @@ use pest::error::Error;
 use pest::iterators::Pair;
 use pest::Parser;
 
-#[cfg(feature = "chess")]
-use crate::chess::{ChessMove, Piece, Square};
 use crate::uci::ProtectionState;
 use crate::uci::{
     MessageList, UciFen, UciInfoAttribute, UciMessage, UciSearchControl, UciTimeControl,
 };
-#[cfg(not(feature = "chess"))]
 use crate::uci::{UciMove, UciPiece, UciSquare};
 use crate::UciOptionConfig;
 
@@ -212,10 +207,7 @@ fn do_parse_uci(
             Rule::position => {
                 let mut startpos = false;
                 let mut fen: Option<UciFen> = None;
-                #[cfg(not(feature = "chess"))]
                 let mut moves: Vec<UciMove> = Default::default();
-                #[cfg(feature = "chess")]
-                let mut moves: Vec<ChessMove> = Default::default();
 
                 for sp in pair.into_inner() {
                     match sp.as_rule() {
@@ -369,14 +361,8 @@ fn do_parse_uci(
             Rule::uciok => UciMessage::UciOk,
             Rule::readyok => UciMessage::ReadyOk,
             Rule::bestmove => {
-                #[cfg(not(feature = "chess"))]
                 let mut bm: Option<UciMove> = None;
-                #[cfg(not(feature = "chess"))]
                 let mut ponder: Option<UciMove> = None;
-                #[cfg(feature = "chess")]
-                let mut bm: Option<ChessMove> = None;
-                #[cfg(feature = "chess")]
-                let mut ponder: Option<ChessMove> = None;
                 for sp in pair.into_inner() {
                     match sp.as_rule() {
                         Rule::a_move => {
@@ -573,10 +559,7 @@ fn do_parse_uci(
                                     info_attr.push(an_info);
                                 }
                                 Rule::info_pv => {
-                                    #[cfg(not(feature = "chess"))]
                                     let mut mv: Vec<UciMove> = vec![];
-                                    #[cfg(feature = "chess")]
-                                    let mut mv: Vec<ChessMove> = vec![];
                                     for spii in spi.into_inner() {
                                         if spii.as_rule() == Rule::a_move {
                                             let a_move = parse_a_move(spii);
@@ -586,10 +569,7 @@ fn do_parse_uci(
                                     info_attr.push(UciInfoAttribute::Pv(mv));
                                 }
                                 Rule::info_refutation => {
-                                    #[cfg(not(feature = "chess"))]
                                     let mut mv: Vec<UciMove> = vec![];
-                                    #[cfg(feature = "chess")]
-                                    let mut mv: Vec<ChessMove> = vec![];
                                     for spii in spi.into_inner() {
                                         if spii.as_rule() == Rule::a_move {
                                             let a_move = parse_a_move(spii);
@@ -599,10 +579,7 @@ fn do_parse_uci(
                                     info_attr.push(UciInfoAttribute::Refutation(mv));
                                 }
                                 Rule::info_currline => {
-                                    #[cfg(not(feature = "chess"))]
                                     let mut mv: Vec<UciMove> = vec![];
-                                    #[cfg(feature = "chess")]
-                                    let mut mv: Vec<ChessMove> = vec![];
                                     let mut cpu_nr: Option<u16> = None;
                                     for spii in spi.into_inner() {
                                         match spii.as_rule() {
@@ -736,7 +713,6 @@ fn parse_id_text(id_pair: Pair<Rule>, rule: Rule) -> UciMessage {
     unreachable!();
 }
 
-#[cfg(not(feature = "chess"))]
 fn parse_square(sq_pair: Pair<Rule>) -> UciSquare {
     let mut pairs = sq_pair.into_inner();
     let pair = pairs.next().unwrap();
@@ -745,31 +721,6 @@ fn parse_square(sq_pair: Pair<Rule>) -> UciSquare {
     let rank = pair.as_span().as_str().parse().unwrap();
 
     UciSquare::from(file, rank)
-}
-
-#[cfg(feature = "chess")]
-fn parse_square(sq_pair: Pair<Rule>) -> Square {
-    let mut file: char = '\0';
-    let mut rank: u8 = 0;
-
-    match sq_pair.as_rule() {
-        Rule::square => {
-            for sp in sq_pair.into_inner() {
-                match sp.as_rule() {
-                    Rule::file => {
-                        file = sp.as_span().as_str().chars().into_iter().next().unwrap();
-                    }
-                    Rule::rank => {
-                        rank = str::parse(sp.as_span().as_str()).unwrap();
-                    }
-                    _ => unreachable!(),
-                }
-            }
-        }
-        _ => unreachable!(),
-    }
-
-    Square::from_str(format!("{}{}", file.to_string(), rank.to_string()).as_str()).unwrap()
 }
 
 fn parse_milliseconds(pair: Pair<Rule>) -> i64 {
@@ -810,7 +761,6 @@ fn parse_wdl(pair: Pair<Rule>) -> (i32, i32, i32) {
     (w, d, l)
 }
 
-#[cfg(not(feature = "chess"))]
 fn parse_a_move(sp: Pair<Rule>) -> UciMove {
     let mut from_sq = UciSquare::default();
     let mut to_sq = UciSquare::default();
@@ -835,43 +785,6 @@ fn parse_a_move(sp: Pair<Rule>) -> UciMove {
         from: from_sq,
         to: to_sq,
         promotion,
-    }
-}
-
-#[cfg(feature = "chess")]
-fn parse_a_move(sp: Pair<Rule>) -> ChessMove {
-    let mut from_sq = Square::default();
-    let mut to_sq = Square::default();
-    let mut promotion: Option<Piece> = None;
-
-    for move_token in sp.into_inner() {
-        match move_token.as_rule() {
-            Rule::from_sq => {
-                from_sq = parse_square(move_token.into_inner().next().unwrap());
-            }
-            Rule::to_sq => {
-                to_sq = parse_square(move_token.into_inner().next().unwrap());
-            }
-            Rule::promotion => {
-                promotion = Some(piece_from_str(move_token.as_span().as_str()).unwrap());
-            }
-            _ => unreachable!(),
-        }
-    }
-
-    ChessMove::new(from_sq, to_sq, promotion)
-}
-
-#[cfg(feature = "chess")]
-fn piece_from_str(s: &str) -> Result<Piece, FmtError> {
-    match s.to_ascii_lowercase().as_str() {
-        "n" => Ok(Piece::Knight),
-        "p" => Ok(Piece::Pawn),
-        "b" => Ok(Piece::Bishop),
-        "r" => Ok(Piece::Rook),
-        "k" => Ok(Piece::King),
-        "q" => Ok(Piece::Queen),
-        _ => Err(FmtError),
     }
 }
 
@@ -1074,42 +987,25 @@ mod tests {
         let ml = parse_strict("position startpos moves e2e4 e7e5\r\n").unwrap();
         assert_eq!(ml.len(), 1);
 
-        #[cfg(not(feature = "chess"))]
-        {
-            let m1 = UciMove {
-                from: UciSquare { file: 'e', rank: 2 },
-                to: UciSquare { file: 'e', rank: 4 },
-                promotion: None,
-            };
+        let m1 = UciMove {
+            from: UciSquare { file: 'e', rank: 2 },
+            to: UciSquare { file: 'e', rank: 4 },
+            promotion: None,
+        };
 
-            let m2 = UciMove {
-                from: UciSquare { file: 'e', rank: 7 },
-                to: UciSquare { file: 'e', rank: 5 },
-                promotion: None,
-            };
+        let m2 = UciMove {
+            from: UciSquare { file: 'e', rank: 7 },
+            to: UciSquare { file: 'e', rank: 5 },
+            promotion: None,
+        };
 
-            let pos = UciMessage::Position {
-                startpos: true,
-                fen: None,
-                moves: vec![m1, m2],
-            };
+        let pos = UciMessage::Position {
+            startpos: true,
+            fen: None,
+            moves: vec![m1, m2],
+        };
 
-            assert_eq!(ml[0], pos);
-        }
-
-        #[cfg(feature = "chess")]
-        {
-            let m1 = ChessMove::new(Square::E2, Square::E4, None);
-            let m2 = ChessMove::new(Square::E7, Square::E5, None);
-
-            let pos = UciMessage::Position {
-                startpos: true,
-                fen: None,
-                moves: vec![m1, m2],
-            };
-
-            assert_eq!(ml[0], pos);
-        }
+        assert_eq!(ml[0], pos);
     }
 
     #[test]
@@ -1120,15 +1016,11 @@ mod tests {
         .unwrap();
         assert_eq!(ml.len(), 1);
 
-        #[cfg(not(feature = "chess"))]
         let m1 = UciMove {
             from: UciSquare { file: 'd', rank: 2 },
             to: UciSquare { file: 'd', rank: 4 },
             promotion: None,
         };
-
-        #[cfg(feature = "chess")]
-        let m1 = ChessMove::new(Square::D2, Square::D4, None);
 
         let pos = UciMessage::Position {
             startpos: false,
@@ -1149,25 +1041,17 @@ mod tests {
                 .unwrap();
         assert_eq!(ml.len(), 1);
 
-        #[cfg(not(feature = "chess"))]
         let m1 = UciMove {
             from: UciSquare { file: 'g', rank: 7 },
             to: UciSquare { file: 'g', rank: 8 },
             promotion: Some(UciPiece::Queen),
         };
 
-        #[cfg(not(feature = "chess"))]
         let m2 = UciMove {
             from: UciSquare { file: 'c', rank: 4 },
             to: UciSquare { file: 'g', rank: 8 },
             promotion: None,
         };
-
-        #[cfg(feature = "chess")]
-        let m1 = ChessMove::new(Square::G7, Square::G8, Some(Piece::Queen));
-
-        #[cfg(feature = "chess")]
-        let m2 = ChessMove::new(Square::C4, Square::G8, None);
 
         let pos = UciMessage::Position {
             startpos: false,
@@ -1295,7 +1179,6 @@ mod tests {
         let ml = parse_strict("go nodes 79093455456 searchmoves e2e4 d2d4 g2g1n\n").unwrap();
         assert_eq!(ml.len(), 1);
 
-        #[cfg(not(feature = "chess"))]
         let sc = UciSearchControl {
             depth: None,
             nodes: Some(79093455456),
@@ -1308,18 +1191,6 @@ mod tests {
                     to: UciSquare::from('g', 1),
                     promotion: Some(UciPiece::Knight),
                 },
-            ],
-        };
-
-        #[cfg(feature = "chess")]
-        let sc = UciSearchControl {
-            depth: None,
-            nodes: Some(79093455456),
-            mate: None,
-            search_moves: vec![
-                ChessMove::new(Square::E2, Square::E4, None),
-                ChessMove::new(Square::D2, Square::D4, None),
-                ChessMove::new(Square::G2, Square::G1, Some(Piece::Knight)),
             ],
         };
 
@@ -1339,7 +1210,6 @@ mod tests {
 
         let tc = UciTimeControl::MoveTime(Duration::milliseconds(10000));
 
-        #[cfg(not(feature = "chess"))]
         let sc = UciSearchControl {
             depth: Some(6),
             nodes: Some(55000000),
@@ -1348,14 +1218,6 @@ mod tests {
                 UciSquare::from('a', 1),
                 UciSquare::from('h', 8),
             )],
-        };
-
-        #[cfg(feature = "chess")]
-        let sc = UciSearchControl {
-            depth: Some(6),
-            nodes: Some(55000000),
-            mate: None,
-            search_moves: vec![ChessMove::new(Square::A1, Square::H8, None)],
         };
 
         let result = UciMessage::Go {
@@ -1437,20 +1299,12 @@ mod tests {
         let ml = parse_strict("bestmove  g1f3\n").unwrap();
         assert_eq!(ml.len(), 1);
 
-        #[cfg(not(feature = "chess"))]
         let m = UciMessage::BestMove {
             best_move: UciMove {
                 from: UciSquare::from('g', 1),
                 to: UciSquare::from('f', 3),
                 promotion: None,
             },
-
-            ponder: None,
-        };
-
-        #[cfg(feature = "chess")]
-        let m = UciMessage::BestMove {
-            best_move: ChessMove::new(Square::G1, Square::F3, None),
 
             ponder: None,
         };
@@ -1464,7 +1318,6 @@ mod tests {
         let ml = parse_strict("bestmove g1f3 ponder d8f6\n").unwrap();
         assert_eq!(ml.len(), 1);
 
-        #[cfg(not(feature = "chess"))]
         let m = UciMessage::BestMove {
             best_move: UciMove {
                 from: UciSquare::from('g', 1),
@@ -1477,13 +1330,6 @@ mod tests {
                 to: UciSquare::from('f', 6),
                 promotion: None,
             }),
-        };
-
-        #[cfg(feature = "chess")]
-        let m = UciMessage::BestMove {
-            best_move: ChessMove::new(Square::G1, Square::F3, None),
-
-            ponder: Some(ChessMove::new(Square::D8, Square::F6, None)),
         };
 
         assert_eq!(m, ml[0]);
@@ -1829,19 +1675,11 @@ mod tests {
     fn test_parse_info_currmove() {
         let ml = parse_strict("info currmove a7a8q\n").unwrap();
 
-        #[cfg(not(feature = "chess"))]
         let m = UciMessage::Info(vec![UciInfoAttribute::CurrMove(UciMove {
             from: UciSquare::from('a', 7),
             to: UciSquare::from('a', 8),
             promotion: Some(UciPiece::Queen),
         })]);
-
-        #[cfg(feature = "chess")]
-        let m = UciMessage::Info(vec![UciInfoAttribute::CurrMove(ChessMove::new(
-            Square::A7,
-            Square::A8,
-            Some(Piece::Queen),
-        ))]);
 
         assert_eq!(m, ml[0]);
     }
@@ -1850,18 +1688,10 @@ mod tests {
     fn test_parse_info_pv() {
         let ml = parse_strict("info pv e2e4 e7e5 g1f3\n").unwrap();
 
-        #[cfg(not(feature = "chess"))]
         let m = UciMessage::Info(vec![UciInfoAttribute::Pv(vec![
             UciMove::from_to(UciSquare::from('e', 2), UciSquare::from('e', 4)),
             UciMove::from_to(UciSquare::from('e', 7), UciSquare::from('e', 5)),
             UciMove::from_to(UciSquare::from('g', 1), UciSquare::from('f', 3)),
-        ])]);
-
-        #[cfg(feature = "chess")]
-        let m = UciMessage::Info(vec![UciInfoAttribute::Pv(vec![
-            ChessMove::new(Square::E2, Square::E4, None),
-            ChessMove::new(Square::E7, Square::E5, None),
-            ChessMove::new(Square::G1, Square::F3, None),
         ])]);
 
         assert_eq!(m, ml[0]);
@@ -1871,16 +1701,9 @@ mod tests {
     fn test_parse_info_refutation() {
         let ml = parse_strict("info refutation d1h5 g6h5\n").unwrap();
 
-        #[cfg(not(feature = "chess"))]
         let m = UciMessage::Info(vec![UciInfoAttribute::Refutation(vec![
             UciMove::from_to(UciSquare::from('d', 1), UciSquare::from('h', 5)),
             UciMove::from_to(UciSquare::from('g', 6), UciSquare::from('h', 5)),
-        ])]);
-
-        #[cfg(feature = "chess")]
-        let m = UciMessage::Info(vec![UciInfoAttribute::Refutation(vec![
-            ChessMove::new(Square::D1, Square::H5, None),
-            ChessMove::new(Square::G6, Square::H5, None),
         ])]);
 
         assert_eq!(m, ml[0]);
@@ -1890,21 +1713,11 @@ mod tests {
     fn test_info_currline_no_cpu_nr() {
         let ml = parse_strict("info currline d1h5 g6h5\n").unwrap();
 
-        #[cfg(not(feature = "chess"))]
         let m = UciMessage::Info(vec![UciInfoAttribute::CurrLine {
             cpu_nr: None,
             line: vec![
                 UciMove::from_to(UciSquare::from('d', 1), UciSquare::from('h', 5)),
                 UciMove::from_to(UciSquare::from('g', 6), UciSquare::from('h', 5)),
-            ],
-        }]);
-
-        #[cfg(feature = "chess")]
-        let m = UciMessage::Info(vec![UciInfoAttribute::CurrLine {
-            cpu_nr: None,
-            line: vec![
-                ChessMove::new(Square::D1, Square::H5, None),
-                ChessMove::new(Square::G6, Square::H5, None),
             ],
         }]);
 
@@ -1915,21 +1728,11 @@ mod tests {
     fn test_info_currline_with_cpu_nr() {
         let ml = parse_strict("info currline 1 d1h5 g6h5\n").unwrap();
 
-        #[cfg(not(feature = "chess"))]
         let m = UciMessage::Info(vec![UciInfoAttribute::CurrLine {
             cpu_nr: Some(1),
             line: vec![
                 UciMove::from_to(UciSquare::from('d', 1), UciSquare::from('h', 5)),
                 UciMove::from_to(UciSquare::from('g', 6), UciSquare::from('h', 5)),
-            ],
-        }]);
-
-        #[cfg(feature = "chess")]
-        let m = UciMessage::Info(vec![UciInfoAttribute::CurrLine {
-            cpu_nr: Some(1),
-            line: vec![
-                ChessMove::new(Square::D1, Square::H5, None),
-                ChessMove::new(Square::G6, Square::H5, None),
             ],
         }]);
 
@@ -1941,7 +1744,6 @@ mod tests {
         let ml = parse_strict("info currline 1 d1h5 g6h5 currline 2 e2e4 currline 3 d2d4 d7d5\n")
             .unwrap();
 
-        #[cfg(not(feature = "chess"))]
         let m = UciMessage::Info(vec![
             UciInfoAttribute::CurrLine {
                 cpu_nr: Some(1),
@@ -1962,28 +1764,6 @@ mod tests {
                 line: vec![
                     UciMove::from_to(UciSquare::from('d', 2), UciSquare::from('d', 4)),
                     UciMove::from_to(UciSquare::from('d', 7), UciSquare::from('d', 5)),
-                ],
-            },
-        ]);
-
-        #[cfg(feature = "chess")]
-        let m = UciMessage::Info(vec![
-            UciInfoAttribute::CurrLine {
-                cpu_nr: Some(1),
-                line: vec![
-                    ChessMove::new(Square::D1, Square::H5, None),
-                    ChessMove::new(Square::G6, Square::H5, None),
-                ],
-            },
-            UciInfoAttribute::CurrLine {
-                cpu_nr: Some(2),
-                line: vec![ChessMove::new(Square::E2, Square::E4, None)],
-            },
-            UciInfoAttribute::CurrLine {
-                cpu_nr: Some(3),
-                line: vec![
-                    ChessMove::new(Square::D2, Square::D4, None),
-                    ChessMove::new(Square::D7, Square::D5, None),
                 ],
             },
         ]);
@@ -2061,7 +1841,6 @@ mod tests {
         println!("{}", ml[0].uci_serialize());
         assert_eq!(1, ml.len());
 
-        #[cfg(not(feature = "chess"))]
         let m = UciMessage::Info(vec![
             UciInfoAttribute::from_centipawns(13),
             UciInfoAttribute::Depth(1),
@@ -2071,15 +1850,6 @@ mod tests {
                 UciSquare::from('f', 1),
                 UciSquare::from('b', 5),
             )]),
-        ]);
-
-        #[cfg(feature = "chess")]
-        let m = UciMessage::Info(vec![
-            UciInfoAttribute::from_centipawns(13),
-            UciInfoAttribute::Depth(1),
-            UciInfoAttribute::Nodes(13),
-            UciInfoAttribute::Time(Duration::milliseconds(15)),
-            UciInfoAttribute::Pv(vec![ChessMove::new(Square::F1, Square::B5, None)]),
         ]);
 
         assert_eq!(m, ml[0]);
@@ -2114,7 +1884,6 @@ mod tests {
         println!("{}", ml[0].uci_serialize());
         assert_eq!(1, ml.len());
 
-        #[cfg(not(feature = "chess"))]
         let m = UciMessage::Info(vec![
             UciInfoAttribute::from_centipawns(20),
             UciInfoAttribute::Depth(3),
@@ -2124,19 +1893,6 @@ mod tests {
                 UciMove::from_to(UciSquare::from('f', 1), UciSquare::from('c', 4)),
                 UciMove::from_to(UciSquare::from('g', 8), UciSquare::from('f', 6)),
                 UciMove::from_to(UciSquare::from('b', 1), UciSquare::from('c', 3)),
-            ]),
-        ]);
-
-        #[cfg(feature = "chess")]
-        let m = UciMessage::Info(vec![
-            UciInfoAttribute::from_centipawns(20),
-            UciInfoAttribute::Depth(3),
-            UciInfoAttribute::Nodes(423),
-            UciInfoAttribute::Time(Duration::milliseconds(15)),
-            UciInfoAttribute::Pv(vec![
-                ChessMove::new(Square::F1, Square::C4, None),
-                ChessMove::new(Square::G8, Square::F6, None),
-                ChessMove::new(Square::B1, Square::C3, None),
             ]),
         ]);
 
