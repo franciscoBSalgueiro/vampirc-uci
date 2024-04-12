@@ -784,6 +784,33 @@ impl Display for UciOptionConfig {
     }
 }
 
+#[derive(Clone, Eq, PartialEq, Debug, Hash)]
+#[cfg_attr(feature = "specta", derive(Type))]
+#[cfg_attr(feature = "serde", derive(Serialize))]
+#[cfg_attr(
+    feature = "serde",
+    serde(tag = "type", content = "value", rename_all = "camelCase")
+)]
+pub enum ScoreValue {
+    /// The score in centipawns.
+    Cp(i32),
+    /// Mate coming up in this many moves. Negative value means the engine is getting mated.
+    Mate(i32),
+}
+
+#[derive(Clone, Eq, PartialEq, Debug, Hash)]
+#[cfg_attr(feature = "specta", derive(Type))]
+#[cfg_attr(feature = "serde", derive(Serialize))]
+pub struct Score {
+    pub value: ScoreValue,
+    /// The probability of each result (win, draw, loss).
+    pub wdl: Option<(i32, i32, i32)>,
+    /// The value sent is the lower bound.
+    pub lower_bound: Option<bool>,
+    /// The value sent is the upper bound.
+    pub upper_bound: Option<bool>,
+}
+
 /// The representation of various info messages. For an info attribute that is not listed in the protocol specification,
 /// the `UciInfoAttribute::Any(name, value)` variant can be used.
 #[derive(Clone, Eq, PartialEq, Debug, Hash)]
@@ -807,22 +834,7 @@ pub enum UciInfoAttribute {
     MultiPv(u16),
 
     /// The `info score ...` message.
-    Score {
-        /// The score in centipawns.
-        cp: Option<i32>,
-
-        /// Mate coming up in this many moves. Negative value means the engine is getting mated.
-        mate: Option<i32>,
-
-        /// The probability of each result (win, draw, loss).
-        wdl: Option<(i32, i32, i32)>,
-
-        /// The value sent is the lower bound.
-        lower_bound: Option<bool>,
-
-        /// The value sent is the upper bound.
-        upper_bound: Option<bool>,
-    },
+    Score(Score),
 
     /// The `info currmove` message (current move).
     CurrMove(UciMove),
@@ -869,25 +881,23 @@ impl UciInfoAttribute {
     /// Creates a `UciInfoAttribute::Score` with the `cp` attribute set to the value of the parameter and all other
     /// fields set to `None`.
     pub fn from_centipawns(cp: i32) -> UciInfoAttribute {
-        UciInfoAttribute::Score {
-            cp: Some(cp),
-            mate: None,
+        UciInfoAttribute::Score(Score {
+            value: ScoreValue::Cp(cp),
             wdl: None,
             lower_bound: None,
             upper_bound: None,
-        }
+        })
     }
 
     /// Creates a `UciInfoAttribute::Score` with the `mate` attribute set to the value of the parameter and all other
     /// fields set to `None`. A negative value indicates it is the engine that is getting mated.
     pub fn from_mate(mate: i32) -> UciInfoAttribute {
-        UciInfoAttribute::Score {
-            cp: None,
-            mate: Some(mate),
+        UciInfoAttribute::Score(Score {
+            value: ScoreValue::Mate(mate),
             wdl: None,
             lower_bound: None,
             upper_bound: None,
-        }
+        })
     }
 
     /// Returns the name of the info attribute.
@@ -932,19 +942,15 @@ impl UciSerializable for UciInfoAttribute {
                 }
             }
             UciInfoAttribute::MultiPv(num) => s += format!(" {}", *num).as_str(),
-            UciInfoAttribute::Score {
-                cp,
-                mate,
+            UciInfoAttribute::Score(Score {
+                value,
                 wdl,
                 lower_bound,
                 upper_bound,
-            } => {
-                if let Some(c) = cp {
-                    s += format!(" cp {}", *c).as_str();
-                }
-
-                if let Some(m) = mate {
-                    s += format!(" mate {}", *m).as_str();
+            }) => {
+                match value {
+                    ScoreValue::Cp(cp) => s += format!(" cp {}", *cp).as_str(),
+                    ScoreValue::Mate(mate) => s += format!(" mate {}", *mate).as_str(),
                 }
 
                 if let Some((w, d, l)) = wdl {
@@ -1434,13 +1440,12 @@ mod tests {
 
     #[test]
     fn test_serialize_info_score() {
-        let attributes: Vec<UciInfoAttribute> = vec![UciInfoAttribute::Score {
-            cp: Some(817),
-            mate: None,
+        let attributes: Vec<UciInfoAttribute> = vec![UciInfoAttribute::Score(Score {
+            value: ScoreValue::Cp(817),
             wdl: None,
             upper_bound: Some(true),
             lower_bound: None,
-        }];
+        })];
 
         let m = UciMessage::Info(attributes);
 
@@ -1449,13 +1454,12 @@ mod tests {
 
     #[test]
     fn test_serialize_info_score_mate_in_three() {
-        let attributes: Vec<UciInfoAttribute> = vec![UciInfoAttribute::Score {
-            cp: None,
-            mate: Some(-3),
+        let attributes: Vec<UciInfoAttribute> = vec![UciInfoAttribute::Score(Score {
+            value: ScoreValue::Mate(-3),
             wdl: None,
             upper_bound: None,
             lower_bound: None,
-        }];
+        })];
 
         let m = UciMessage::Info(attributes);
 

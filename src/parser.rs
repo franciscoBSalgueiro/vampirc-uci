@@ -11,10 +11,10 @@ use pest::error::Error;
 use pest::iterators::Pair;
 use pest::Parser;
 
-use crate::uci::ProtectionState;
 use crate::uci::{
     MessageList, UciFen, UciInfoAttribute, UciMessage, UciSearchControl, UciTimeControl,
 };
+use crate::uci::{ProtectionState, Score, ScoreValue};
 use crate::uci::{UciMove, UciPiece, UciSquare};
 use crate::UciOptionConfig;
 
@@ -633,14 +633,18 @@ fn do_parse_uci(
                                             _ => {}
                                         }
                                     }
+                                    let value = match (cp, mate) {
+                                        (Some(cp), None) => ScoreValue::Cp(cp),
+                                        (None, Some(mate)) => ScoreValue::Mate(mate),
+                                        _ => unreachable!(),
+                                    };
 
-                                    info_attr.push(UciInfoAttribute::Score {
-                                        cp,
-                                        mate,
+                                    info_attr.push(UciInfoAttribute::Score(Score {
+                                        value,
                                         wdl,
                                         lower_bound: lb,
                                         upper_bound: ub,
-                                    });
+                                    }));
                                 }
                                 Rule::info_any => {
                                     let mut s: Option<String> = None;
@@ -1793,13 +1797,12 @@ mod tests {
     fn test_info_score_cp_lowerbound() {
         let ml = parse_strict("info score cp -75 lowerbound\n").unwrap();
 
-        let m = UciMessage::Info(vec![UciInfoAttribute::Score {
-            cp: Some(-75),
-            mate: None,
+        let m = UciMessage::Info(vec![UciInfoAttribute::Score(Score {
+            value: ScoreValue::Cp(-75),
             wdl: None,
             lower_bound: Some(true),
             upper_bound: None,
-        }]);
+        })]);
 
         assert_eq!(m, ml[0]);
     }
@@ -1808,13 +1811,12 @@ mod tests {
     fn test_info_score_cp_upperbound() {
         let ml = parse_strict("info score cp 404 upperbound\n").unwrap();
 
-        let m = UciMessage::Info(vec![UciInfoAttribute::Score {
-            cp: Some(404),
-            mate: None,
+        let m = UciMessage::Info(vec![UciInfoAttribute::Score(Score {
+            value: ScoreValue::Cp(404),
             wdl: None,
             upper_bound: Some(true),
             lower_bound: None,
-        }]);
+        })]);
 
         assert_eq!(m, ml[0]);
     }
@@ -1823,13 +1825,12 @@ mod tests {
     fn test_info_score_wdl() {
         let ml = parse_strict("info score cp -75 wdl 68 931 1\n").unwrap();
 
-        let m = UciMessage::Info(vec![UciInfoAttribute::Score {
-            cp: Some(-75),
-            mate: None,
+        let m = UciMessage::Info(vec![UciInfoAttribute::Score(Score {
+            value: ScoreValue::Cp(-75),
             wdl: Some((68, 931, 1)),
             lower_bound: None,
             upper_bound: None,
-        }]);
+        })]);
 
         assert_eq!(m, ml[0]);
     }
@@ -2007,13 +2008,12 @@ mod tests {
         assert_eq!(msgs2.len(), 1);
         assert_eq!(
             msgs2[0],
-            UciMessage::Info(vec![UciInfoAttribute::Score {
-                cp: Some(20),
-                mate: None,
+            UciMessage::Info(vec![UciInfoAttribute::Score(Score {
+                value: ScoreValue::Cp(20),
                 wdl: None,
                 lower_bound: None,
                 upper_bound: None,
-            }])
+            })])
         );
     }
 
