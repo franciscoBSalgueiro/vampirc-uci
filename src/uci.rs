@@ -798,7 +798,13 @@ pub enum ScoreValue {
     Mate(i32),
 }
 
-#[derive(Clone, Eq, PartialEq, Debug, Hash)]
+impl Default for ScoreValue {
+    fn default() -> Self {
+        ScoreValue::Cp(0)
+    }
+}
+
+#[derive(Clone, Eq, PartialEq, Debug, Hash, Default)]
 #[cfg_attr(feature = "specta", derive(Type))]
 #[cfg_attr(feature = "serde", derive(Serialize))]
 pub struct Score {
