@@ -294,7 +294,7 @@ impl UciMessage {
                 if let Some(val) = value {
                     let pr = str::parse(val.as_str());
                     if let Ok(v) = pr {
-                        return Some(v)
+                        return Some(v);
                     }
                 }
 
@@ -862,6 +862,9 @@ pub enum UciInfoAttribute {
         /// Mate coming up in this many moves. Negative value means the engine is getting mated.
         mate: Option<i32>,
 
+        /// The probability of each result (win, draw, loss).
+        wdl: Option<(i32, i32, i32)>,
+
         /// The value sent is the lower bound.
         lower_bound: Option<bool>,
 
@@ -932,6 +935,7 @@ impl UciInfoAttribute {
         UciInfoAttribute::Score {
             cp: Some(cp),
             mate: None,
+            wdl: None,
             lower_bound: None,
             upper_bound: None,
         }
@@ -943,6 +947,7 @@ impl UciInfoAttribute {
         UciInfoAttribute::Score {
             cp: None,
             mate: Some(mate),
+            wdl: None,
             lower_bound: None,
             upper_bound: None,
         }
@@ -993,6 +998,7 @@ impl UciSerializable for UciInfoAttribute {
             UciInfoAttribute::Score {
                 cp,
                 mate,
+                wdl,
                 lower_bound,
                 upper_bound,
             } => {
@@ -1002,6 +1008,10 @@ impl UciSerializable for UciInfoAttribute {
 
                 if let Some(m) = mate {
                     s += format!(" mate {}", *m).as_str();
+                }
+
+                if let Some((w, d, l)) = wdl {
+                    s += format!(" wdl {} {} {}", *w, *d, *l).as_str();
                 }
 
                 if lower_bound.is_some() {
@@ -1546,6 +1556,7 @@ mod tests {
         let attributes: Vec<UciInfoAttribute> = vec![UciInfoAttribute::Score {
             cp: Some(817),
             mate: None,
+            wdl: None,
             upper_bound: Some(true),
             lower_bound: None,
         }];
@@ -1560,6 +1571,7 @@ mod tests {
         let attributes: Vec<UciInfoAttribute> = vec![UciInfoAttribute::Score {
             cp: None,
             mate: Some(-3),
+            wdl: None,
             upper_bound: None,
             lower_bound: None,
         }];

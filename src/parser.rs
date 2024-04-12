@@ -676,6 +676,7 @@ fn do_parse_uci(
                                     Rule::info_score => {
                                         let mut cp = None;
                                         let mut mate = None;
+                                        let mut wdl = None;
                                         let mut lb = None;
                                         let mut ub = None;
 
@@ -683,6 +684,7 @@ fn do_parse_uci(
                                             match spii.as_rule() {
                                                 Rule::info_cp => cp = Some(parse_number(spii)),
                                                 Rule::info_mate => mate = Some(parse_number(spii)),
+                                                Rule::info_wdl => wdl = Some(parse_wdl(spii)),
                                                 Rule::info_lowerbound => lb = Some(true),
                                                 Rule::info_upperbound => ub = Some(true),
                                                 _ => {}
@@ -692,6 +694,7 @@ fn do_parse_uci(
                                         info_attr.push(UciInfoAttribute::Score {
                                             cp,
                                             mate,
+                                            wdl,
                                             lower_bound: lb,
                                             upper_bound: ub,
                                         });
@@ -841,6 +844,21 @@ where
     }
 
     T::default()
+}
+
+fn parse_wdl(pair: Pair<Rule>) -> (i32, i32, i32) {
+    let pairs = pair.into_inner();
+    let numbers: Vec<i32> = pairs
+        .map(|p| str::parse::<i32>(p.as_span().as_str()).unwrap())
+        .collect();
+
+    assert_eq!(numbers.len(), 3);
+
+    let w = numbers[0];
+    let d = numbers[1];
+    let l = numbers[2];
+
+    (w, d, l)
 }
 
 #[cfg(not(feature = "chess"))]
@@ -2049,6 +2067,7 @@ mod tests {
         let m = UciMessage::Info(vec![UciInfoAttribute::Score {
             cp: Some(-75),
             mate: None,
+            wdl: None,
             lower_bound: Some(true),
             upper_bound: None,
         }]);
@@ -2063,8 +2082,24 @@ mod tests {
         let m = UciMessage::Info(vec![UciInfoAttribute::Score {
             cp: Some(404),
             mate: None,
+            wdl: None,
             upper_bound: Some(true),
             lower_bound: None,
+        }]);
+
+        assert_eq!(m, ml[0]);
+    }
+
+    #[test]
+    fn test_info_score_wdl() {
+        let ml = parse_strict("info score cp -75 wdl 68 931 1\n").unwrap();
+
+        let m = UciMessage::Info(vec![UciInfoAttribute::Score {
+            cp: Some(-75),
+            mate: None,
+            wdl: Some((68, 931, 1)),
+            lower_bound: None,
+            upper_bound: None,
         }]);
 
         assert_eq!(m, ml[0]);
@@ -2269,8 +2304,9 @@ mod tests {
             msgs2[0],
             UciMessage::Info(vec![UciInfoAttribute::Score {
                 cp: Some(20),
-                lower_bound: None,
                 mate: None,
+                wdl: None,
+                lower_bound: None,
                 upper_bound: None,
             }])
         );

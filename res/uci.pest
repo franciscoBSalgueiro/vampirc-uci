@@ -158,9 +158,10 @@ info_multipv = ${ ^"multipv" ~ WHITESPACE+ ~ number }
 info_refutation = ${ ^"refutation" ~ (WHITESPACE+ ~ a_move)+ }
 info_currline = ${ ^"currline" ~ (WHITESPACE+ ~ info_cpunr)* ~ (WHITESPACE+ ~ a_move)+ }
 info_cpunr = { number }
-info_score = ${ ^"score" ~ WHITESPACE+ ~ (info_cp | info_mate) ~ (WHITESPACE+ ~ (info_lowerbound | info_upperbound))* }
+info_score = ${ ^"score" ~ WHITESPACE+ ~ (info_cp | info_mate) ~ (WHITESPACE+ ~ info_wdl)? ~ (WHITESPACE+ ~ (info_lowerbound | info_upperbound))* }
 info_cp = ${ ^"cp" ~ WHITESPACE+ ~ number }
 info_mate = ${ ^"mate" ~ WHITESPACE+ ~ number }
+info_wdl = ${ ^"wdl" ~ WHITESPACE+ ~ number ~ WHITESPACE+ ~ number ~ WHITESPACE+ ~ number }
 info_lowerbound = { ^"lowerbound" }
 info_upperbound = { ^"upperbound" }
 
